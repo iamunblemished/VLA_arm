@@ -1,0 +1,1 @@
+docker run --rm -it   --net=host   --shm-size=1gb   --memory="2.8g"   -v $(pwd)/test_vlm.py:/app/test_vlm.py   smolvlm-test:latest   python3 test_vlm.py
