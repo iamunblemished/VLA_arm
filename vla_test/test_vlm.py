@@ -77,7 +77,7 @@ def run_inference():
             "role": "user",
             "content": [
                 {"type": "image"},
-                {"type": "text", "text": "Object name?"}
+                {"type": "text", "text": "Describe what you see in the least amount of words possible."}
             ]
         }
     ]
