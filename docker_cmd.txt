@@ -3,8 +3,7 @@ docker run --rm -it \
   --shm-size=1gb \
   --memory="2.8g" \
   --device /dev/fastrpc-cdsp-secure \
-  --device /dev/ion \
   -v $(pwd):/app \
   -e LD_LIBRARY_PATH=/app \
   smolvlm-hexagon:latest \
-  python3 test_vlm.py
+  python3 vla_test/test_vlm.py
