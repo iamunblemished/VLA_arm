@@ -18,7 +18,7 @@ processor = AutoProcessor.from_pretrained(MODEL_ID)
 print("2. Loading TFLite Model onto Qualcomm Hexagon NPU...")
 try:
     # Attempt to load the QNN hardware delegate
-    qnn_delegate = tflite.load_delegate('libQnnTfLiteDelegate.so')
+    qnn_delegate = tflite.load_delegate('libQnnTFLiteDelegate.so')
     interpreter = tflite.Interpreter(
         model_path=TFLITE_MODEL_PATH, 
         experimental_delegates=[qnn_delegate]
