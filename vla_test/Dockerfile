@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y \
 # Layer 2: Hardware stack (NPU Delegate requires TensorFlow)
 RUN pip install --no-cache-dir tensorflow opencv-python-headless
 
-# Layer 3: The Preprocessing stack (Tiny CPU-only Torch for the AutoProcessor)
+# Layer 3: The Preprocessing stack (Tiny CPU-only Torch for the AutoImageProcessor)
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Layer 4: The Tokenizer stack
-RUN pip install --no-cache-dir transformers accelerate pillow requests numpy
+# Layer 4: The Tokenizer stack (Forces the latest HuggingFace update)
+RUN pip install --no-cache-dir --upgrade transformers accelerate pillow requests "numpy<2"
 
 WORKDIR /app
 ENV TRANSFORMERS_CACHE=/app/model_cache

@@ -56,11 +56,11 @@ def get_raw_frames():
         small = cv2.resize(bgr_frame, (640, 480))
         
         # 3. Apply Color Gains & Gamma
-        temp = small.astype(np.float32)
-        temp[:, :, 0] *= B_GAIN
-        temp[:, :, 1] *= G_GAIN
-        temp[:, :, 2] *= R_GAIN
-        temp = np.clip(temp, 0, 255).astype(np.uint8)
+        #temp = small.astype(np.float32)
+        #temp[:, :, 0] *= B_GAIN
+        #temp[:, :, 1] *= G_GAIN
+        #temp[:, :, 2] *= R_GAIN
+        #temp = np.clip(temp, 0, 255).astype(np.uint8)
         
         # Apply pre-calculated Gamma LUT
         latest_frame = cv2.LUT(temp, GAMMA_LUT)

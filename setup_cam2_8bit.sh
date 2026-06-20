@@ -21,7 +21,7 @@ sudo media-ctl -d /dev/media0 -V '"msm_csid0":0 [fmt:SRGGB8_1X8/1920x1080]'
 sudo media-ctl -d /dev/media0 -V '"msm_vfe0_rdi0":0 [fmt:SRGGB8_1X8/1920x1080]'
 
 # 5. Boost Brightness (Manual Exposure/Gain)
-v4l2-ctl -d /dev/v4l-subdev27 --set-ctrl=exposure=1000
-v4l2-ctl -d /dev/v4l-subdev27 --set-ctrl=analogue_gain=200
+v4l2-ctl -d /dev/v4l-subdev27 --set-ctrl=exposure=1250
+v4l2-ctl -d /dev/v4l-subdev27 --set-ctrl=analogue_gain=400
 
 echo "Cam2 Pipeline Secured at 8-bit. Pipeline fully routed."

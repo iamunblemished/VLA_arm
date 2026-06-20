@@ -3,25 +3,22 @@ import requests
 import numpy as np
 from io import BytesIO
 from PIL import Image
-from transformers import AutoProcessor
+from transformers import AutoTokenizer, AutoImageProcessor
 import tensorflow as tf
 
-# Configuration
-SERVER_URL = "http://localhost:5000/capture" # Updated to match your local setup
+SERVER_URL = "http://localhost:5000/capture"
 MODEL_ID = "HuggingFaceTB/SmolVLM-500M-Instruct"
 TFLITE_MODEL_PATH = "smolvlm_hexagon.elf.tflite"
 
-print("1. Loading Processor (Using your working CPU config!)...")
-# Your magic flag that prevents the HF crash:
-processor = AutoProcessor.from_pretrained(MODEL_ID, do_image_splitting=False)
+print("1. Loading Tokenizer and Image Processor manually...")
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+# trust_remote_code forces the download of the SmolVLM-specific image code
+image_processor = AutoImageProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
 
 print("2. Loading TFLite Model onto Qualcomm Hexagon NPU...")
 try:
     qnn_delegate = tf.lite.experimental.load_delegate('libQnnTFLiteDelegate.so')
-    interpreter = tf.lite.Interpreter(
-        model_path=TFLITE_MODEL_PATH, 
-        experimental_delegates=[qnn_delegate]
-    )
+    interpreter = tf.lite.Interpreter(model_path=TFLITE_MODEL_PATH, experimental_delegates=[qnn_delegate])
     print("SUCCESS: QNN Hardware Delegate attached!")
 except Exception as e:
     print(f"Delegate rejected. Falling back to CPU TFLite execution...")
@@ -42,37 +39,24 @@ def get_frame():
         return None
 
 def process_frame(image):
-    # 1. Your exact Chat Template
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "image"},
-                {"type": "text", "text": "Describe the main object in this image."}
-            ]
-        }
-    ]
-    prompt = processor.apply_chat_template(messages, add_generation_prompt=True)
+    # 1. Format the Prompt
+    messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": "Describe the main object in this image."}]}]
+    prompt = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
     
-    # 2. Your exact Processor Call (Outputting NumPy instead of PyTorch)
-    inputs = processor(
-        text=prompt, 
-        images=[image], 
-        return_tensors="np",
-        do_image_splitting=False 
-    )
+    # 2. Process text and image separately to avoid the library crash
+    text_inputs = tokenizer(prompt, return_tensors="np")
+    image_inputs = image_processor(images=image, return_tensors="np")
 
-    # Extract the properly formatted multimodal tokens!
-    raw_input_ids = inputs["input_ids"].astype(np.int32)
-    raw_attention_mask = inputs["attention_mask"].astype(np.int32)
-    pixel_values = inputs["pixel_values"].astype(np.float32)
+    # Extract inputs
+    raw_input_ids = text_inputs["input_ids"].astype(np.int32)
+    raw_attention_mask = text_inputs["attention_mask"].astype(np.int32)
+    pixel_values = image_inputs["pixel_values"].astype(np.float32)
 
-    # NPU expects shape [1, 1, 3, 512, 512]
     if len(pixel_values.shape) == 4:
         pixel_values = np.expand_dims(pixel_values, axis=1)
 
-    # 3. Fit into the NPU's compiled 76-token static memory block
-    MAX_TOKENS = 76
+    # 3. Fit into the NPU's compiled memory block (Increased to 128)
+    MAX_TOKENS = 128
     input_ids = np.zeros((1, MAX_TOKENS), dtype=np.int32)
     attention_mask = np.zeros((1, MAX_TOKENS), dtype=np.int32)
     
@@ -91,11 +75,11 @@ def process_frame(image):
         else:
             idx_input_ids = detail['index']
 
-    # 4. Our NPU Autoregressive Loop (Replaces model.generate)
     print("\n--- Starting NPU Inference ---")
     generated_tokens = []
     
-    for step in range(15):
+    # Increased loop from 15 to 30 to allow full sentence generation
+    for step in range(30):
         if seq_len >= MAX_TOKENS:
             break
             
@@ -117,8 +101,7 @@ def process_frame(image):
         attention_mask[0, seq_len] = 1
         seq_len += 1
 
-    # 5. Decode output
-    output_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+    output_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
     print("\n--- Final VLM Output ---")
     print(output_text)
     print("------------------------\n")
